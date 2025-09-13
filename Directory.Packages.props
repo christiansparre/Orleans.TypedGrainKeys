@@ -1,14 +1,14 @@
 <Project>
-    <PropertyGroup>
-        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-        <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
-    </PropertyGroup>
-    <ItemGroup>
-        <PackageVersion Include="Microsoft.Orleans.Sdk" Version="8.1.0-preview3" />
-        <PackageVersion Include="Microsoft.Orleans.TestingHost" Version="8.1.0-preview3" />
-        <PackageVersion Include="coverlet.collector" Version="6.0.0" />
-        <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
-        <PackageVersion Include="xunit" Version="2.5.3" />
-        <PackageVersion Include="xunit.runner.visualstudio" Version="2.5.3" />
-    </ItemGroup>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.Orleans.Sdk" Version="9.2.1" />
+    <PackageVersion Include="Microsoft.Orleans.TestingHost" Version="9.2.1" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
 </Project>
