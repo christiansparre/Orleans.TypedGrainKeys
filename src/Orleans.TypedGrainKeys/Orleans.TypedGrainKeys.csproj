@@ -9,6 +9,11 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<!-- The tests exercise the raw part encoding through the name-less writer and reader. -->
+		<InternalsVisibleTo Include="Orleans.TypedGrainKeys.Tests" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<!-- Build the generator first, and ship it in the package's analyzers folder so consumers get it automatically. -->
 		<ProjectReference Include="..\Orleans.TypedGrainKeys.Generators\Orleans.TypedGrainKeys.Generators.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
 		<None Include="..\Orleans.TypedGrainKeys.Generators\bin\$(Configuration)\netstandard2.0\Orleans.TypedGrainKeys.Generators.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />

@@ -10,9 +10,18 @@ public sealed class TypedGrainKeyWriter
 {
     private readonly StringBuilder _builder = new();
 
-    public static TypedGrainKeyWriter Create() => new();
+    private TypedGrainKeyWriter()
+    {
+    }
 
-    /// <summary>The number of parts written so far.</summary>
+    /// <summary>Creates a writer for a <typeparamref name="TKey"/>, starting with the key's name.</summary>
+    public static TypedGrainKeyWriter Create<TKey>() where TKey : ITypedGrainKey<TKey> =>
+        new TypedGrainKeyWriter().Write(GrainKeyFormat.GetValidName<TKey>());
+
+    /// <summary>Creates a writer without a name. Used to test the part encoding.</summary>
+    internal static TypedGrainKeyWriter Create() => new();
+
+    /// <summary>The number of parts written so far, including the name.</summary>
     public int PartCount { get; private set; }
 
     public TypedGrainKeyWriter Write(string part)

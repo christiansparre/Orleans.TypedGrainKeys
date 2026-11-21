@@ -3,16 +3,19 @@ namespace Orleans.TypedGrainKeys.Tests.Keys;
 /// <summary>A key implemented by hand with the writer and reader, without the generator.</summary>
 public record HandWrittenGrainKey(Guid TenantId, string Name) : ITypedGrainKey<HandWrittenGrainKey>
 {
-    public static implicit operator string(HandWrittenGrainKey self)
+    public static string GrainKeyName => "hand-written";
+
+    public static string Format(HandWrittenGrainKey key)
     {
-        return TypedGrainKeyWriter.Create()
-            .Write(self.TenantId)
-            .Write(self.Name);
+        return TypedGrainKeyWriter.Create<HandWrittenGrainKey>()
+            .Write(key.TenantId)
+            .Write(key.Name)
+            .Build();
     }
 
-    public static implicit operator HandWrittenGrainKey(string self)
+    public static HandWrittenGrainKey Parse(string key)
     {
-        using var reader = TypedGrainKeyReader.Create<HandWrittenGrainKey>(self);
+        using var reader = TypedGrainKeyReader.Create<HandWrittenGrainKey>(key);
 
         return new HandWrittenGrainKey(reader.ReadGuid(), reader.ReadString());
     }

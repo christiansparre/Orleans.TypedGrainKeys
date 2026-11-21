@@ -1,6 +1,6 @@
 namespace Orleans.TypedGrainKeys.Tests.Keys;
 
-[GrainKey]
+[GrainKey("test")]
 public partial record TestGrainKey(
     string One,
     int Two,

@@ -134,14 +134,14 @@ public class GrainKeyFormatTests
     {
         var exception = Capture(() =>
         {
-            using var reader = TypedGrainKeyReader.Create<UserGrainKey>("a");
+            using var reader = TypedGrainKeyReader.Create<UserGrainKey>("user|a");
             reader.ReadString();
             reader.ReadString();
         });
 
-        await Assert.That(exception.PartIndex).IsEqualTo(1);
+        await Assert.That(exception.PartIndex).IsEqualTo(2);
         await Assert.That(exception.KeyType).IsEqualTo(typeof(UserGrainKey));
-        await Assert.That(exception.Reason).IsEqualTo("expected at least 2 parts but it has 1");
+        await Assert.That(exception.Reason).IsEqualTo("expected at least 3 parts but it has 2");
     }
 
     [Test]
@@ -229,7 +229,7 @@ public class GrainKeyFormatTests
     [Test]
     public async Task Error_Message_Names_The_Key_Type()
     {
-        var exception = Capture(() => _ = (UserGrainKey)"nope");
+        var exception = Capture(() => _ = UserGrainKey.Parse("nope"));
 
         await Assert.That(exception.Key).IsEqualTo("nope");
         await Assert.That(exception.Message).Contains("UserGrainKey");
@@ -240,7 +240,7 @@ public class GrainKeyFormatTests
     {
         var key = new UserGrainKey(Guid.NewGuid(), 42);
 
-        var success = TypedGrainKey.TryParse<UserGrainKey>(key, out var parsed);
+        var success = TypedGrainKey.TryParse<UserGrainKey>(UserGrainKey.Format(key), out var parsed);
 
         await Assert.That(success).IsTrue();
         await Assert.That(parsed).IsEqualTo(key);
@@ -271,8 +271,8 @@ public class GrainKeyFormatTests
             Seven: TestEnum.Foo,
             Eight: new FullName("", @"Mc\Clane"));
 
-        string encoded = key;
-        TestGrainKey decoded = encoded;
+        var encoded = TestGrainKey.Format(key);
+        var decoded = TestGrainKey.Parse(encoded);
 
         await Assert.That(decoded).IsEqualTo(key);
     }

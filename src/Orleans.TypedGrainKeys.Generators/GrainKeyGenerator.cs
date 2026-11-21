@@ -56,6 +56,22 @@ public sealed class GrainKeyGenerator : IIncrementalGenerator
             return Failed(diagnostics);
         }
 
+        // A missing name argument is already a compiler error, so there's nothing to add.
+        var attribute = context.Attributes[0];
+        if (attribute.ConstructorArguments.Length != 1)
+        {
+            return Failed(diagnostics);
+        }
+
+        var grainKeyName = attribute.ConstructorArguments[0].Value as string;
+        if (!IsValidName(grainKeyName))
+        {
+            var nameLocation = attribute.ApplicationSyntaxReference?.GetSyntax(cancellationToken) is AttributeSyntax { ArgumentList.Arguments: { Count: > 0 } arguments }
+                ? arguments[0].GetLocation()
+                : location;
+            Report(DiagnosticDescriptors.InvalidName, nameLocation, grainKeyName ?? "null", symbol.Name);
+        }
+
         if (!syntax.Modifiers.Any(SyntaxKind.PartialKeyword))
         {
             Report(DiagnosticDescriptors.NotPartial, location, symbol.Name);
@@ -112,6 +128,8 @@ public sealed class GrainKeyGenerator : IIncrementalGenerator
             Namespace: symbol.ContainingNamespace.IsGlobalNamespace ? null : symbol.ContainingNamespace.ToDisplayString(),
             Name: symbol.Name,
             FullyQualifiedName: symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            GrainKeyName: grainKeyName!,
+            IsPublic: symbol.DeclaredAccessibility == Accessibility.Public,
             IsValueType: symbol.IsValueType,
             IsReadOnly: symbol.IsReadOnly,
             Parts: new EquatableArray<PartModel>(parts));
@@ -186,6 +204,10 @@ public sealed class GrainKeyGenerator : IIncrementalGenerator
         var isGrainKey = type.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == GrainKeyAttributeName);
         return isGrainKey ? PartKind.Nested : null;
     }
+
+    /// <summary>Keep in sync with <c>GrainKeyFormat.GetValidName</c> in the library.</summary>
+    internal static bool IsValidName(string? name) =>
+        !string.IsNullOrEmpty(name) && name!.All(c => c is (>= 'a' and <= 'z') or (>= 'A' and <= 'Z') or (>= '0' and <= '9') or '-' or '_' or '.');
 
     private static string EscapeIdentifier(string name) =>
         SyntaxFacts.GetKeywordKind(name) != SyntaxKind.None ? "@" + name : name;

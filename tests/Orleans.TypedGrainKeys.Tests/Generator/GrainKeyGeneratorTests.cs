@@ -18,7 +18,7 @@ public class GrainKeyGeneratorTests
         var run = GeneratorHarness.Run($$"""
             using Orleans;
             namespace App;
-            [GrainKey]
+            [GrainKey("key")]
             {{declaration}}
             """);
 
@@ -31,7 +31,7 @@ public class GrainKeyGeneratorTests
     public async Task Generates_Code_For_Keys_In_The_Global_Namespace()
     {
         var run = GeneratorHarness.Run("""
-            [Orleans.GrainKey]
+            [Orleans.GrainKey("key")]
             public partial record Key(int Id);
             """);
 
@@ -45,7 +45,7 @@ public class GrainKeyGeneratorTests
         var run = GeneratorHarness.Run("""
             using Orleans;
             namespace App;
-            [GrainKey]
+            [GrainKey("key")]
             public partial record Key;
             public partial record Key(System.Guid TenantId);
             """);
@@ -60,8 +60,8 @@ public class GrainKeyGeneratorTests
         var run = GeneratorHarness.Run("""
             using Orleans;
             namespace App;
-            [GrainKey] public partial record Name(string First, string Last);
-            [GrainKey] public partial record Key(System.Guid TenantId, Name Name);
+            [GrainKey("name")] public partial record Name(string First, string Last);
+            [GrainKey("key")] public partial record Key(System.Guid TenantId, Name Name);
             """);
 
         await Assert.That(run.CompilationErrors).IsEmpty();
@@ -75,7 +75,7 @@ public class GrainKeyGeneratorTests
     [Arguments("public partial struct Key { }", "TGK002")]
     [Arguments("public partial record Key;", "TGK003")]
     [Arguments("public partial record Key();", "TGK003")]
-    [Arguments("public partial class Outer { [GrainKey] public partial record Key(int Id); }", "TGK004")]
+    [Arguments("public partial class Outer { [GrainKey(\"key\")] public partial record Key(int Id); }", "TGK004")]
     [Arguments("public partial record Key<T>(int Id);", "TGK004")]
     [Arguments("public abstract partial record Key(int Id);", "TGK004")]
     [Arguments("public partial record Key(double Value);", "TGK005")]
@@ -85,7 +85,7 @@ public class GrainKeyGeneratorTests
     public async Task Reports_Diagnostics_For_Invalid_Keys(string declaration, string expectedId)
     {
         // Nested declarations carry their own attribute; everything else gets it here.
-        var attribute = declaration.Contains("[GrainKey]") ? "" : "[GrainKey]";
+        var attribute = declaration.Contains("[GrainKey(") ? "" : "[GrainKey(\"key\")]";
         var run = GeneratorHarness.Run($$"""
             using Orleans;
             namespace App;
@@ -103,7 +103,7 @@ public class GrainKeyGeneratorTests
         const string source = """
             using Orleans;
             namespace App;
-            [GrainKey]
+            [GrainKey("key")]
             public partial record Key(int Id, double Value);
             """;
 
@@ -120,7 +120,7 @@ public class GrainKeyGeneratorTests
         var compilation = GeneratorHarness.CreateCompilation("""
             using Orleans;
             namespace App;
-            [GrainKey]
+            [GrainKey("key")]
             public partial record Key(System.Guid TenantId, int UserId);
             """);
 

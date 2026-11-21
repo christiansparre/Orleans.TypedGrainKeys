@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Diagnostics;
 using Orleans.TypedGrainKeys.Generators;
 
 namespace Orleans.TypedGrainKeys.Tests.Generator;
@@ -30,6 +31,16 @@ internal static class GeneratorHarness
             generatorDiagnostics,
             output.GetDiagnostics().Where(d => d.Severity == DiagnosticSeverity.Error).ToImmutableArray(),
             driver.GetRunResult().Results.SelectMany(r => r.GeneratedSources).Select(s => s.SourceText.ToString()).ToImmutableArray());
+    }
+
+    /// <summary>Runs the generators, then the analyzer over the generated compilation, and returns the analyzer's diagnostics.</summary>
+    public static async Task<ImmutableArray<Diagnostic>> Analyze(string source)
+    {
+        CreateDriver().RunGeneratorsAndUpdateCompilation(CreateCompilation(source), out var output, out _);
+
+        return await output
+            .WithAnalyzers([new GrainKeyAnalyzer()])
+            .GetAnalyzerDiagnosticsAsync();
     }
 
     public static CSharpCompilation CreateCompilation(string source) => CSharpCompilation.Create(

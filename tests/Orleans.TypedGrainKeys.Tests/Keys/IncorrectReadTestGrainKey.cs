@@ -1,21 +1,24 @@
 ﻿namespace Orleans.TypedGrainKeys.Tests.Keys;
 
+/// <summary>A hand-written key whose Parse forgets to read its last part.</summary>
 public record IncorrectReadTestGrainKey(
     string One,
     int Two,
     long Three) : ITypedGrainKey<IncorrectReadTestGrainKey>
 {
-    public static implicit operator string(IncorrectReadTestGrainKey self)
+    public static string GrainKeyName => "incorrect-read";
+
+    public static string Format(IncorrectReadTestGrainKey key)
     {
-        return TypedGrainKeyWriter.Create()
-            .Write(self.One)
-            .Write(self.Two)
-            .Write(self.Three);
+        return TypedGrainKeyWriter.Create<IncorrectReadTestGrainKey>()
+            .Write(key.One)
+            .Write(key.Two)
+            .Write(key.Three);
     }
 
-    public static implicit operator IncorrectReadTestGrainKey(string self)
+    public static IncorrectReadTestGrainKey Parse(string key)
     {
-        using var reader = TypedGrainKeyReader.Create<IncorrectReadTestGrainKey>(self);
+        using var reader = TypedGrainKeyReader.Create<IncorrectReadTestGrainKey>(key);
 
         return new IncorrectReadTestGrainKey(
             reader.ReadString(),
