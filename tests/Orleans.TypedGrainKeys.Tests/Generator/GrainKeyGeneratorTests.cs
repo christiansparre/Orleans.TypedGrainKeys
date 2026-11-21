@@ -127,11 +127,7 @@ public class GrainKeyGeneratorTests
         var driver = GeneratorHarness.CreateDriver().RunGenerators(compilation);
         driver = driver.RunGenerators(compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText("namespace App; public class Unrelated { }")));
 
-        var outputs = driver.GetRunResult().Results.Single()
-            .TrackedSteps[GrainKeyGenerator.TrackingName]
-            .SelectMany(step => step.Outputs)
-            .Select(output => output.Reason)
-            .ToList();
+        var outputs = driver.StepReasons(GrainKeyGenerator.TrackingName);
 
         await Assert.That(outputs).IsNotEmpty();
         await Assert.That(outputs.All(reason => reason is IncrementalStepRunReason.Cached or IncrementalStepRunReason.Unchanged)).IsTrue();

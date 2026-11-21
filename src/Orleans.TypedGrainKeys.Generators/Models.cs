@@ -86,3 +86,15 @@ internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnu
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }
+
+/// <param name="ContainingTypes">Declarations of the containing types, outermost first, e.g. <c>partial class Outer</c>.</param>
+/// <param name="Declaration">The grain's own partial declaration, e.g. <c>partial class UserGrain&lt;T&gt;</c>.</param>
+/// <param name="KeyType">The fully qualified typed key.</param>
+internal sealed record GrainModel(
+    string? Namespace,
+    EquatableArray<string> ContainingTypes,
+    string Declaration,
+    string KeyType,
+    string HintName);
+
+internal sealed record GrainParseResult(GrainModel? Grain, EquatableArray<DiagnosticModel> Diagnostics);

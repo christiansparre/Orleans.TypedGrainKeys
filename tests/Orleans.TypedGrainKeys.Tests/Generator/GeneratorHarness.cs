@@ -5,7 +5,7 @@ using Orleans.TypedGrainKeys.Generators;
 
 namespace Orleans.TypedGrainKeys.Tests.Generator;
 
-/// <summary>Runs <see cref="GrainKeyGenerator"/> over a source snippet and compiles the result.</summary>
+/// <summary>Runs the generators over a source snippet and compiles the result.</summary>
 internal static class GeneratorHarness
 {
     private static readonly CSharpParseOptions ParseOptions = new(LanguageVersion.Latest);
@@ -15,6 +15,7 @@ internal static class GeneratorHarness
             .Split(Path.PathSeparator)
             .Append(typeof(GrainKeyAttribute).Assembly.Location)
             .Append(typeof(Grain).Assembly.Location)
+            .Append(typeof(Grain<object>).Assembly.Location)
             .Distinct()
             .Select(path => (MetadataReference)MetadataReference.CreateFromFile(path))
             .ToArray();
@@ -28,7 +29,7 @@ internal static class GeneratorHarness
         return new GeneratorRun(
             generatorDiagnostics,
             output.GetDiagnostics().Where(d => d.Severity == DiagnosticSeverity.Error).ToImmutableArray(),
-            driver.GetRunResult().Results.Single().GeneratedSources.Select(s => s.SourceText.ToString()).ToImmutableArray());
+            driver.GetRunResult().Results.SelectMany(r => r.GeneratedSources).Select(s => s.SourceText.ToString()).ToImmutableArray());
     }
 
     public static CSharpCompilation CreateCompilation(string source) => CSharpCompilation.Create(
@@ -38,7 +39,7 @@ internal static class GeneratorHarness
         new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
 
     public static GeneratorDriver CreateDriver() => CSharpGeneratorDriver.Create(
-        generators: [new GrainKeyGenerator().AsSourceGenerator()],
+        generators: [new GrainKeyGenerator().AsSourceGenerator(), new TypedKeyGrainGenerator().AsSourceGenerator()],
         parseOptions: ParseOptions,
         driverOptions: new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None, trackIncrementalGeneratorSteps: true));
 }
@@ -47,3 +48,16 @@ internal sealed record GeneratorRun(
     ImmutableArray<Diagnostic> GeneratorDiagnostics,
     ImmutableArray<Diagnostic> CompilationErrors,
     ImmutableArray<string> GeneratedSources);
+
+internal static class GeneratorDriverExtensions
+{
+    /// <summary>The reasons for every output of the tracked step <paramref name="trackingName"/> in the last run.</summary>
+    public static List<IncrementalStepRunReason> StepReasons(this GeneratorDriver driver, string trackingName) =>
+        driver.GetRunResult().Results
+            .SelectMany(r => r.TrackedSteps)
+            .Where(step => step.Key == trackingName)
+            .SelectMany(step => step.Value)
+            .SelectMany(step => step.Outputs)
+            .Select(output => output.Reason)
+            .ToList();
+}

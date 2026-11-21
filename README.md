@@ -38,7 +38,7 @@ public partial record FullName(string First, string Last);
 public partial record CustomerGrainKey(Guid TenantId, FullName Name); // <tenant>|<first>|<last>
 ```
 
-Mistakes show up as compile errors:
+Mistakes in a key declaration show up as compile errors:
 
 | Id | Reported when |
 | --- | --- |
@@ -100,10 +100,10 @@ public interface IUserGrain : IGrainWithTypedKey<UserGrainKey>
 var userGrain = grainFactory.GetGrain<IUserGrain>(new UserGrainKey(tenantId, userId));
 ```
 
-In the grain, derive from `TypedKeyGrain<TKey>` to get a `Key` property. The key is decoded the first time you use it and then cached:
+In the grain, declare the class `partial` and the generator adds a `Key` property of the grain's key type. The key is decoded the first time you use it and then cached:
 
 ```csharp
-public class UserGrain : TypedKeyGrain<UserGrainKey>, IUserGrain
+public partial class UserGrain : Grain, IUserGrain
 {
     public Task<Response> Lock()
     {
@@ -112,7 +112,15 @@ public class UserGrain : TypedKeyGrain<UserGrainKey>, IUserGrain
 }
 ```
 
-Grains that don't derive from `TypedKeyGrain<TKey>`, such as POCO grains that implement `IGrainBase`, can use the `GetTypedKey<TKey>()` extension instead. It decodes the key on every call.
+Because nothing is inherited, this works with any base class: `Grain`, `Grain<TState>`, your own grain base classes, or POCO grains that implement `IGrainBase`. If a base class gets the generated `Key`, its derived grains use it.
+
+Grain classes that aren't `partial` get no `Key` property, and can call the `GetTypedKey<TKey>()` extension instead, which decodes the key on every call. The generator reports these diagnostics for grains:
+
+| Id | Severity | Reported when |
+| --- | --- | --- |
+| `TGK006` | Info | a grain with a typed key, or a type it's nested in, isn't `partial` |
+| `TGK007` | Warning | a `partial` grain already has a member named `Key` |
+| `TGK008` | Warning | a grain implements grain interfaces with different typed keys |
 
 ## Writing a key by hand
 

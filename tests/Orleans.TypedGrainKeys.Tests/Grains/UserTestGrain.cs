@@ -2,7 +2,7 @@ using Orleans.TypedGrainKeys.Tests.Keys;
 
 namespace Orleans.TypedGrainKeys.Tests.Grains;
 
-public class UserTestGrain : TypedKeyGrain<UserGrainKey>, IUserTestGrain
+public partial class UserTestGrain : Grain, IUserTestGrain
 {
     public Task<Response> Lock()
     {

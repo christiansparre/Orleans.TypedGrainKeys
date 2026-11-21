@@ -43,4 +43,14 @@ public class TypedGrainKeyGrainTests(TestClusterFixture fixture)
 
         await Assert.That(response.Message).IsEqualTo($"The user {_userId} in tenant {_tenantId} was successfully locked");
     }
+
+    [Test]
+    public async Task Poco_Grain_Gets_A_Generated_Key()
+    {
+        var grain = _cluster.GrainFactory.GetGrain<IPocoUserTestGrain>(new UserGrainKey(_tenantId, _userId));
+
+        var response = await grain.Describe();
+
+        await Assert.That(response.Message).IsEqualTo($"POCO grain for user {_userId} in tenant {_tenantId}");
+    }
 }

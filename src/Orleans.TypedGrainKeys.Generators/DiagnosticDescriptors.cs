@@ -48,4 +48,28 @@ internal static class DiagnosticDescriptors
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor GrainNotPartial = new(
+        id: "TGK006",
+        title: "Make the grain partial to generate its Key property",
+        messageFormat: "Declare '{0}' partial to generate a Key property of type '{1}' for grain '{2}'",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Info,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor GrainKeyMemberExists = new(
+        id: "TGK007",
+        title: "Grain already has a Key member",
+        messageFormat: "Grain '{0}' already has a member named 'Key', so no Key property of type '{1}' is generated",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor GrainHasConflictingKeys = new(
+        id: "TGK008",
+        title: "Grain implements interfaces with different typed keys",
+        messageFormat: "Grain '{0}' implements grain interfaces with different typed keys ({1}), so no Key property is generated",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
 }
