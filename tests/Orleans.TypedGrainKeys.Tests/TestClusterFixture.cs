@@ -1,35 +1,26 @@
 using Orleans.TestingHost;
+using TUnit.Core.Interfaces;
 
 namespace Orleans.TypedGrainKeys.Tests;
 
-public class TestClusterFixture : IAsyncLifetime
+public class TestClusterFixture : IAsyncInitializer, IAsyncDisposable
 {
-    public TestClusterFixture()
-    {
-        var builder = new TestClusterBuilder
+    public TestCluster Cluster { get; } = new TestClusterBuilder
         {
             Options =
-                {
-                    ClusterId = "test-cluster",
-                    ServiceId = "test-service"
-                }
-        };
-        builder
-            .AddSiloBuilderConfigurator<TestSiloConfigurator>();
+            {
+                ClusterId = "test-cluster",
+                ServiceId = "test-service"
+            }
+        }
+        .AddSiloBuilderConfigurator<TestSiloConfigurator>()
+        .Build();
 
-        Cluster = builder.Build();
-        Cluster.Deploy();
-    }
+    public Task InitializeAsync() => Cluster.DeployAsync();
 
-    public TestCluster Cluster { get; set; }
-
-    public Task InitializeAsync()
-    {
-        return Task.CompletedTask;
-    }
-
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         await Cluster.StopAllSilosAsync();
+        await Cluster.DisposeAsync();
     }
 }

@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
+    <File Path="nuget.config" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Orleans.TypedGrainKeys/Orleans.TypedGrainKeys.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Orleans.TypedGrainKeys.Tests/Orleans.TypedGrainKeys.Tests.csproj" />
+  </Folder>
+</Solution>
