@@ -26,7 +26,7 @@ public record TestGrainKey(
 
     public static implicit operator TestGrainKey(string self)
     {
-        using var reader = TypedGrainKeyReader.Create(self);
+        using var reader = TypedGrainKeyReader.Create<TestGrainKey>(self);
 
         return new TestGrainKey(
             reader.ReadString(),

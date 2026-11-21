@@ -15,7 +15,7 @@ public record IncorrectReadTestGrainKey(
 
     public static implicit operator IncorrectReadTestGrainKey(string self)
     {
-        using var reader = TypedGrainKeyReader.Create(self);
+        using var reader = TypedGrainKeyReader.Create<IncorrectReadTestGrainKey>(self);
 
         return new IncorrectReadTestGrainKey(
             reader.ReadString(),
