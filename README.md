@@ -1,5 +1,8 @@
 # Simple but powerful: Complex and strongly typed Orleans grain keys
 
+> [!WARNING]
+> This library is experimental. The API and the key format may still change in breaking ways, so be careful about storing keys or relying on it in production.
+
 In Orleans grains are identified by grain keys. These can be strings, integers and guids. In addition, Orleans also supports "key" extensions to create two part component keys ex. 42 with a key extension of "foo".
 
 I found that when working on complex multi tenant systems the grain key constraints were quite limiting. The grain keys can be strings so it is quite easy to create your own "composite keys" by encoding multiple values into the grain key string.
@@ -12,58 +15,41 @@ This repository contains a pretty complete set of tools that are very close to t
 
 _There is a couple of pitfalls that you should consider. Take a look at the end of this readme for some of my thoughts._
 
-## The `ITypedGrainKey` interface
+## Defining a grain key
 
-The following interface defines the strongly typed grain key and is very simple. It just requires you to implement two implicit operators for encoding and decoding the grain keys.
-
-```csharp
-public interface ITypedGrainKey<TSelf> where TSelf : ITypedGrainKey<TSelf>
-{
-    static abstract implicit operator string(TSelf self);
-    static abstract implicit operator TSelf(string self);
-}
-```
-
-An example of a `UserGrainKey` could look something like this.
+Mark a `partial record` (or `partial record struct`) with `[GrainKey]`. Its positional parameters are the parts of the key:
 
 ```csharp
-public record UserGrainKey(Guid TenantId, int UserId) : ITypedGrainKey<UserGrainKey>
-{
-    ...
-}
+[GrainKey]
+public partial record UserGrainKey(Guid TenantId, int UserId);
 ```
 
-## The `TypedGrainKeyWriter` and `TypedGrainKeyReader` helper types
+That's all you write. A source generator, which ships in the package, generates the rest:
 
-The `writer` and `reader` types provides a convenient way to write and read grain keys. They help make sure types are encoded and decoded the same way and will help ensure that ex. the whole key was read.
+- implicit conversions to and from `string`, so the key works directly with Orleans' string key APIs
+- `Parse`, `TryParse` and `IParsable<UserGrainKey>`, so the key also works with anything that binds `IParsable` types, such as ASP.NET Core route parameters
 
-Implementing the implicit `string` operator would look something like this:
+The parts are written in the order of the parameters. The key above is encoded as `29820855-a114-41ba-a5b7-f9b08fdd8774|92197999`.
+
+A part can also be another `[GrainKey]` type. Its parts are written inline:
 
 ```csharp
-public static implicit operator string(UserGrainKey self)
-{
-    return TypedGrainKeyWriter.Create()
-        .Write(self.TenantId)
-        .Write(self.UserId);
-}
+[GrainKey]
+public partial record FullName(string First, string Last);
+
+[GrainKey]
+public partial record CustomerGrainKey(Guid TenantId, FullName Name); // <tenant>|<first>|<last>
 ```
 
-The encoded grain key in this example would end up being something like this `29820855-a114-41ba-a5b7-f9b08fdd8774|92197999`
+Mistakes in a key declaration show up as compile errors:
 
-Parts are separated by `|`. If a string part itself contains `|` or `\`, the writer escapes it with a `\` (`a|b` is written as `a\|b`), so any string value is safe to use. Empty strings are kept as empty parts.
-
-"Decoding" the grain key would look like this:
-
-```csharp
-public static implicit operator UserGrainKey(string self)
-{
-    using var reader = TypedGrainKeyReader.Create<UserGrainKey>(self);
-
-    return new UserGrainKey(reader.ReadGuid(), reader.ReadInt32());
-}
-```
-
-Passing the key type to `Create<TKey>` is optional, but it makes error messages name the key that failed to decode. Disposing the reader checks that every part was read.
+| Id | Reported when |
+| --- | --- |
+| `TGK001` | the key isn't `partial` |
+| `TGK002` | the key is a class or struct rather than a record |
+| `TGK003` | the key has no positional parameters |
+| `TGK004` | the key is nested inside another type, generic or abstract |
+| `TGK005` | a parameter's type isn't supported, or is nullable |
 
 ### Supported types and canonical forms
 
@@ -77,67 +63,92 @@ Passing the key type to `Create<TKey>` is optional, but it makes error messages 
 | `DateOnly`, `TimeOnly` | `O` format: `2024-02-29`, `23:59:59.9990000` |
 | `TimeSpan` | `c` format: `3.04:05:06.0070000` |
 | enums | member name: `Baz` |
+| other `[GrainKey]` types | their parts, inline |
 
-Every value is written and read with the invariant culture, so keys don't change with the server's culture settings.
+Parts are separated by `|`. If a string part contains `|` or `\`, it is escaped with a `\` (`a|b` is written as `a\|b`), so any string value is safe to use. Empty strings are kept as empty parts. Every value is written and read with the invariant culture, so keys don't change with the server's culture settings.
 
-The reader only accepts these exact forms. In Orleans a grain's identity is its key string, so `007` and `7`, or an uppercase and a lowercase `Guid`, would be two different grains with the same typed key. The reader rejects anything that isn't in the form the writer would produce.
+Decoding only accepts these exact forms. In Orleans a grain's identity is its key string, so `007` and `7`, or an uppercase and a lowercase `Guid`, would be two different grains with the same typed key. Anything that isn't in the form the encoder would produce is rejected.
 
 ### Errors
 
-Anything that can't be decoded throws a `GrainKeyFormatException` (a `FormatException`). It has the raw `Key`, the `KeyType` when known, the `PartIndex` that failed, and the original parsing error as its `InnerException`:
+A key that can't be decoded throws a `GrainKeyFormatException` (a `FormatException`). It has the raw `Key`, the `KeyType`, the `PartIndex` that failed, and the original parsing error as its `InnerException`:
 
 ```
 Invalid grain key 'nope' for UserGrainKey: part 0 'nope' is not a valid Guid.
 ```
 
-To check a key without catching exceptions, use `TypedGrainKey.TryParse`:
+To check a key without catching exceptions, use `TryParse`:
 
 ```csharp
-if (TypedGrainKey.TryParse<UserGrainKey>(primaryKey, out var key))
+if (UserGrainKey.TryParse(primaryKey, out var key))
 {
     // use key.TenantId, key.UserId
 }
 ```
 
-## How to use the grain keys
+## Using the keys with grains
 
-In Orleans you get references to grains by using the `IClusterClient` and `IGrainFactory` interfaces. Because the writing and reading of grain keys are implemented by implicit operators it becomes quite easy to use with the existing Orleans API's.
-
-```csharp
-var userGrain = IGrainFactory.GetGrain<IUserGrain>(new UserGrainKey(Guid.Parse("29820855-a114-41ba-a5b7-f9b08fdd8774"), 92197999));
-```
-
-In the grain implementation it is also pretty easy to get a hold of the typed grain key. A simple extension method on the `IAddressable` interface provides an easy way.
+Give the grain interface the key type with `IGrainWithTypedKey<TKey>`:
 
 ```csharp
-public static TKey GetTypedKey<TKey>(this IAddressable addressable) where TKey: ITypedGrainKey<TKey>
+public interface IUserGrain : IGrainWithTypedKey<UserGrainKey>
 {
-    return addressable.GetPrimaryKeyString();
+    Task<Response> Lock();
 }
 ```
 
-You could take it a step further and define a `GrainBase<TKey>` type and allow that to provide a helpful `Key` property.
+`IGrainWithTypedKey<TKey>` is an `IGrainWithStringKey`, so you get grain references with the normal Orleans APIs and pass the typed key:
 
 ```csharp
-public abstract class GrainBase<TKey> : IGrainBase, IGrainWithTypedKey<TKey> where TKey : ITypedGrainKey<TKey>
-{
-    ...
-    public TKey Key => this.GetPrimaryKeyString();
-    ...
-}
+var userGrain = grainFactory.GetGrain<IUserGrain>(new UserGrainKey(tenantId, userId));
 ```
-_See `GrainBase.cs` in the repository for the full implementation_.
 
-You would then be able to use the `Key` property very conveniently like so:
+In the grain, declare the class `partial` and the generator adds a `Key` property of the grain's key type. The key is decoded the first time you use it and then cached:
 
 ```csharp
-public Task<Response> Lock()
+public partial class UserGrain : Grain, IUserGrain
 {
-    return Task.FromResult(new Response($"The user {Key.UserId} in tenant {Key.TenantId} was successfully locked"));
+    public Task<Response> Lock()
+    {
+        return Task.FromResult(new Response($"The user {Key.UserId} in tenant {Key.TenantId} was successfully locked"));
+    }
 }
 ```
 
-The `IGrainWithTypedKey<TKey>` is not technically required, we could just use `IGrainWithStringKey`, but it offers a show of intent and would allow us to maybe do some cool code generation.
+Because nothing is inherited, this works with any base class: `Grain`, `Grain<TState>`, your own grain base classes, or POCO grains that implement `IGrainBase`. If a base class gets the generated `Key`, its derived grains use it.
+
+Grain classes that aren't `partial` get no `Key` property, and can call the `GetTypedKey<TKey>()` extension instead, which decodes the key on every call. The generator reports these diagnostics for grains:
+
+| Id | Severity | Reported when |
+| --- | --- | --- |
+| `TGK006` | Info | a grain with a typed key, or a type it's nested in, isn't `partial` |
+| `TGK007` | Warning | a `partial` grain already has a member named `Key` |
+| `TGK008` | Warning | a grain implements grain interfaces with different typed keys |
+
+## Writing a key by hand
+
+The generator is built on two public types, `TypedGrainKeyWriter` and `TypedGrainKeyReader`. You can use them directly when you need full control, by implementing `ITypedGrainKey<TSelf>` yourself:
+
+```csharp
+public record UserGrainKey(Guid TenantId, int UserId) : ITypedGrainKey<UserGrainKey>
+{
+    public static implicit operator string(UserGrainKey self)
+    {
+        return TypedGrainKeyWriter.Create()
+            .Write(self.TenantId)
+            .Write(self.UserId);
+    }
+
+    public static implicit operator UserGrainKey(string self)
+    {
+        using var reader = TypedGrainKeyReader.Create<UserGrainKey>(self);
+
+        return new UserGrainKey(reader.ReadGuid(), reader.ReadInt32());
+    }
+}
+```
+
+The writer and reader apply the same encoding as generated keys. Passing the key type to `Create<TKey>` is optional, but it makes error messages name the key. Disposing the reader checks that every part was read. For hand-written keys, `TypedGrainKey.Parse<TKey>` and `TypedGrainKey.TryParse<TKey>` provide the parse helpers.
 
 ## Things to consider when using this approach
 

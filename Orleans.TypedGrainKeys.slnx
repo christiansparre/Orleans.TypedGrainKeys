@@ -7,6 +7,7 @@
     <File Path="README.md" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/Orleans.TypedGrainKeys.Generators/Orleans.TypedGrainKeys.Generators.csproj" />
     <Project Path="src/Orleans.TypedGrainKeys/Orleans.TypedGrainKeys.csproj" />
   </Folder>
   <Folder Name="/tests/">

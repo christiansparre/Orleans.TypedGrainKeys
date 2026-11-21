@@ -9,11 +9,16 @@
 
 	<ItemGroup>
 		<PackageReference Include="TUnit" />
+		<PackageReference Include="Microsoft.Orleans.Sdk" />
 		<PackageReference Include="Microsoft.Orleans.TestingHost" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
 	</ItemGroup>
 
 	<ItemGroup>
 	  <ProjectReference Include="..\..\src\Orleans.TypedGrainKeys\Orleans.TypedGrainKeys.csproj" />
+	  <!-- Runs the generator on this project (as a consumer would get it from the package),
+	       and references it so the generator tests can drive it directly. -->
+	  <ProjectReference Include="..\..\src\Orleans.TypedGrainKeys.Generators\Orleans.TypedGrainKeys.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="true" />
 	</ItemGroup>
 
 </Project>

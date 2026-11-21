@@ -1,3 +1,4 @@
-﻿namespace Orleans.TypedGrainKeys.Tests.Keys;
+namespace Orleans.TypedGrainKeys.Tests.Keys;
 
-public record FullName(string First, string Last);
+[GrainKey]
+public partial record FullName(string First, string Last);
