@@ -1,5 +1,8 @@
 # Simple but powerful: Complex and strongly typed Orleans grain keys
 
+> [!WARNING]
+> This library is experimental. The API and the key format may still change in breaking ways, so be careful about storing keys or relying on it in production.
+
 In Orleans grains are identified by grain keys. These can be strings, integers and guids. In addition, Orleans also supports "key" extensions to create two part component keys ex. 42 with a key extension of "foo".
 
 I found that when working on complex multi tenant systems the grain key constraints were quite limiting. The grain keys can be strings so it is quite easy to create your own "composite keys" by encoding multiple values into the grain key string.
