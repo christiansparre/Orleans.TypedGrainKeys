@@ -11,7 +11,7 @@ public record UserGrainKey(Guid TenantId, int UserId) : ITypedGrainKey<UserGrain
 
     public static implicit operator UserGrainKey(string self)
     {
-        using var reader = TypedGrainKeyReader.Create(self);
+        using var reader = TypedGrainKeyReader.Create<UserGrainKey>(self);
 
         return new UserGrainKey(reader.ReadGuid(), reader.ReadInt32());
     }

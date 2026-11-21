@@ -50,34 +50,53 @@ public static implicit operator string(UserGrainKey self)
 
 The encoded grain key in this example would end up being something like this `29820855-a114-41ba-a5b7-f9b08fdd8774|92197999`
 
-I this case the delimiter is `|`. You would need to determine the appropriate delimiter for your use case and choosing a more complex delimiter might be required if the values you might need could contain the delimiter.
-
-The example in this repository just has the delimiter as a constant. But it would be easy to allow the `writer` and `reader` to be configured with differentiating delimiters. 
+Parts are separated by `|`. If a string part itself contains `|` or `\`, the writer escapes it with a `\` (`a|b` is written as `a\|b`), so any string value is safe to use. Empty strings are kept as empty parts.
 
 "Decoding" the grain key would look like this:
 
 ```csharp
-
 public static implicit operator UserGrainKey(string self)
 {
-    using var reader = TypedGrainKeyReader.Create(self);
+    using var reader = TypedGrainKeyReader.Create<UserGrainKey>(self);
 
     return new UserGrainKey(reader.ReadGuid(), reader.ReadInt32());
 }
 ```
 
-You choose which `Write()` and `Read*()` methods you want. It can provide a good place to signal which types are intended to be used as part of a grain key and ensure that the values are encoded they way you want.
+Passing the key type to `Create<TKey>` is optional, but it makes error messages name the key that failed to decode. Disposing the reader checks that every part was read.
 
-You might not want a `DateTimeOffset` like this one:
+### Supported types and canonical forms
 
-```csharp
-public TypedGrainKeyWriter Write(DateTimeOffset part) => Write(part.ToString("O"));
+| Type | Encoded as |
+| --- | --- |
+| `string` | as is, with `\|` and `\` escaped by a leading `\` |
+| `Guid` | `D` format, lowercase: `29820855-a114-41ba-a5b7-f9b08fdd8774` |
+| `int`, `long` | invariant culture: `-42` |
+| `bool` | `true` / `false` |
+| `DateTime`, `DateTimeOffset` | round-trip `O` format; `DateTime.Kind` is preserved |
+| `DateOnly`, `TimeOnly` | `O` format: `2024-02-29`, `23:59:59.9990000` |
+| `TimeSpan` | `c` format: `3.04:05:06.0070000` |
+| enums | member name: `Baz` |
+
+Every value is written and read with the invariant culture, so keys don't change with the server's culture settings.
+
+The reader only accepts these exact forms. In Orleans a grain's identity is its key string, so `007` and `7`, or an uppercase and a lowercase `Guid`, would be two different grains with the same typed key. The reader rejects anything that isn't in the form the writer would produce.
+
+### Errors
+
+Anything that can't be decoded throws a `GrainKeyFormatException` (a `FormatException`). It has the raw `Key`, the `KeyType` when known, the `PartIndex` that failed, and the original parsing error as its `InnerException`:
+
+```
+Invalid grain key 'nope' for UserGrainKey: part 0 'nope' is not a valid Guid.
 ```
 
-But maybe one that writes `DateOnly` in a particular way:
+To check a key without catching exceptions, use `TypedGrainKey.TryParse`:
 
 ```csharp
-public TypedGrainKeyWriter Write(DateOnly part) => Write(part.ToString("yyyy-MM-dd"));
+if (TypedGrainKey.TryParse<UserGrainKey>(primaryKey, out var key))
+{
+    // use key.TenantId, key.UserId
+}
 ```
 
 ## How to use the grain keys

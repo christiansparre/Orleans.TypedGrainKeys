@@ -33,10 +33,10 @@ public class TypedGrainKeyTests
     }
 
     [Test]
-    public async Task Throws_GrainKeyReadException()
+    public async Task Throws_When_Not_All_Parts_Are_Read()
     {
         string encoded = new IncorrectReadTestGrainKey("One", 2, 3);
 
-        await Assert.That(() => (IncorrectReadTestGrainKey)encoded).Throws<GrainKeyReadException>();
+        await Assert.That(() => (IncorrectReadTestGrainKey)encoded).Throws<GrainKeyFormatException>();
     }
 }

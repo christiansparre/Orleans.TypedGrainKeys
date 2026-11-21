@@ -1,31 +1,66 @@
-﻿namespace Orleans;
+using System.Text;
 
-public class TypedGrainKeyWriter
+namespace Orleans;
+
+/// <summary>
+/// Builds an encoded grain key from typed parts. Parts are separated by <c>|</c>;
+/// any <c>|</c> or <c>\</c> inside a string part is escaped with <c>\</c>.
+/// </summary>
+public sealed class TypedGrainKeyWriter
 {
-    internal const char Delimiter = '|';
-    private readonly List<string> _parts = new();
-
-    public TypedGrainKeyWriter Write(string part)
-    {
-        _parts.Add(part);
-        return this;
-    }
+    private readonly StringBuilder _builder = new();
 
     public static TypedGrainKeyWriter Create() => new();
 
-    public TypedGrainKeyWriter Write(Guid part) => Write(part.ToString());
+    /// <summary>The number of parts written so far.</summary>
+    public int PartCount { get; private set; }
 
-    public TypedGrainKeyWriter Write(int part) => Write(part.ToString());
+    public TypedGrainKeyWriter Write(string part)
+    {
+        ArgumentNullException.ThrowIfNull(part);
 
-    public TypedGrainKeyWriter Write(long part) => Write(part.ToString());
+        if (PartCount > 0)
+        {
+            _builder.Append(GrainKeyFormat.Delimiter);
+        }
 
-    public TypedGrainKeyWriter Write(DateTime part) => Write(part.ToString("O"));
+        GrainKeyFormat.AppendEscaped(_builder, part);
+        PartCount++;
+        return this;
+    }
 
-    public TypedGrainKeyWriter Write(DateTimeOffset part) => Write(part.ToString("O"));
+    public TypedGrainKeyWriter Write(Guid part) => Write(GrainKeyFormat.Format(part));
 
-    public TypedGrainKeyWriter Write<TEnum>(TEnum part) where TEnum : struct => Write(part.ToString()!);
+    public TypedGrainKeyWriter Write(int part) => Write(GrainKeyFormat.Format(part));
 
-    public override string ToString() => string.Join(Delimiter, _parts);
+    public TypedGrainKeyWriter Write(long part) => Write(GrainKeyFormat.Format(part));
 
-    public static implicit operator string(TypedGrainKeyWriter writer) => writer.ToString();
+    public TypedGrainKeyWriter Write(bool part) => Write(GrainKeyFormat.Format(part));
+
+    public TypedGrainKeyWriter Write(DateTime part) => Write(GrainKeyFormat.Format(part));
+
+    public TypedGrainKeyWriter Write(DateTimeOffset part) => Write(GrainKeyFormat.Format(part));
+
+    public TypedGrainKeyWriter Write(DateOnly part) => Write(GrainKeyFormat.Format(part));
+
+    public TypedGrainKeyWriter Write(TimeOnly part) => Write(GrainKeyFormat.Format(part));
+
+    public TypedGrainKeyWriter Write(TimeSpan part) => Write(GrainKeyFormat.Format(part));
+
+    public TypedGrainKeyWriter Write<TEnum>(TEnum part) where TEnum : struct, Enum => Write(GrainKeyFormat.Format(part));
+
+    /// <summary>Returns the encoded key. A key must have at least one part.</summary>
+    public string Build()
+    {
+        if (PartCount == 0)
+        {
+            throw new InvalidOperationException("A grain key must contain at least one part.");
+        }
+
+        return _builder.ToString();
+    }
+
+    public override string ToString() => _builder.ToString();
+
+    public static implicit operator string(TypedGrainKeyWriter writer) => writer.Build();
 }
