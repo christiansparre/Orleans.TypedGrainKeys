@@ -1,18 +1,4 @@
-﻿namespace Orleans.TypedGrainKeys.Tests.Keys;
+namespace Orleans.TypedGrainKeys.Tests.Keys;
 
-public record UserGrainKey(Guid TenantId, int UserId) : ITypedGrainKey<UserGrainKey>
-{
-    public static implicit operator string(UserGrainKey self)
-    {
-        return TypedGrainKeyWriter.Create()
-            .Write(self.TenantId)
-            .Write(self.UserId);
-    }
-
-    public static implicit operator UserGrainKey(string self)
-    {
-        using var reader = TypedGrainKeyReader.Create<UserGrainKey>(self);
-
-        return new UserGrainKey(reader.ReadGuid(), reader.ReadInt32());
-    }
-}
+[GrainKey]
+public partial record UserGrainKey(Guid TenantId, int UserId);

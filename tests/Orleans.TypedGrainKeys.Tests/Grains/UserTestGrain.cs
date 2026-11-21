@@ -1,14 +1,9 @@
-﻿using Orleans.Runtime;
 using Orleans.TypedGrainKeys.Tests.Keys;
 
 namespace Orleans.TypedGrainKeys.Tests.Grains;
 
-public class UserTestGrain : GrainBase<UserGrainKey>, IUserTestGrain
+public class UserTestGrain : TypedKeyGrain<UserGrainKey>, IUserTestGrain
 {
-    public UserTestGrain(IGrainContext grainContext) : base(grainContext)
-    {
-    }
-
     public Task<Response> Lock()
     {
         return Task.FromResult(new Response($"The user {Key.UserId} in tenant {Key.TenantId} was successfully locked"));

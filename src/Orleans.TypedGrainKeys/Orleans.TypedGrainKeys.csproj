@@ -1,11 +1,17 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<RootNamespace>Orleans</RootNamespace>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.Orleans.Sdk" />
+		<PackageReference Include="Microsoft.Orleans.Core.Abstractions" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Build the generator first, and ship it in the package's analyzers folder so consumers get it automatically. -->
+		<ProjectReference Include="..\Orleans.TypedGrainKeys.Generators\Orleans.TypedGrainKeys.Generators.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
+		<None Include="..\Orleans.TypedGrainKeys.Generators\bin\$(Configuration)\netstandard2.0\Orleans.TypedGrainKeys.Generators.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
 	</ItemGroup>
 
 </Project>
