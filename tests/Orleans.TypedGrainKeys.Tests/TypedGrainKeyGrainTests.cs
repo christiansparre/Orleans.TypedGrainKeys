@@ -19,7 +19,7 @@ public class TypedGrainKeyGrainTests(TestClusterFixture fixture)
 
         var userTestGrain = _cluster.Client.GetGrain<IUserTestGrain>(userGrainKey);
 
-        await Assert.That((UserGrainKey)userTestGrain.GetPrimaryKeyString()).IsEqualTo(userGrainKey);
+        await Assert.That(userTestGrain.GetTypedKey<UserGrainKey>()).IsEqualTo(userGrainKey);
     }
 
     [Test]
@@ -29,7 +29,7 @@ public class TypedGrainKeyGrainTests(TestClusterFixture fixture)
 
         var userTestGrain = _cluster.GrainFactory.GetGrain<IUserTestGrain>(userGrainKey);
 
-        await Assert.That((UserGrainKey)userTestGrain.GetPrimaryKeyString()).IsEqualTo(userGrainKey);
+        await Assert.That(userTestGrain.GetPrimaryKeyString()).IsEqualTo($"user|{_tenantId}|{_userId}");
     }
 
     [Test]
@@ -38,8 +38,6 @@ public class TypedGrainKeyGrainTests(TestClusterFixture fixture)
         var userTestGrain = _cluster.GrainFactory.GetGrain<IUserTestGrain>(new UserGrainKey(_tenantId, _userId));
 
         var response = await userTestGrain.Lock();
-
-        Console.WriteLine(response.Message);
 
         await Assert.That(response.Message).IsEqualTo($"The user {_userId} in tenant {_tenantId} was successfully locked");
     }

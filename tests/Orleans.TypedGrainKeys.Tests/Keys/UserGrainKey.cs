@@ -1,4 +1,4 @@
 namespace Orleans.TypedGrainKeys.Tests.Keys;
 
-[GrainKey]
+[GrainKey("user")]
 public partial record UserGrainKey(Guid TenantId, int UserId);

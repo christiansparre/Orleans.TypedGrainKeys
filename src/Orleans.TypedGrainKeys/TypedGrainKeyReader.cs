@@ -13,11 +13,7 @@ public sealed class TypedGrainKeyReader : IDisposable
     private int _position;
     private bool _faulted;
 
-    public TypedGrainKeyReader(string key) : this(key, null)
-    {
-    }
-
-    public TypedGrainKeyReader(string key, Type? keyType)
+    private TypedGrainKeyReader(string key, Type? keyType)
     {
         ArgumentNullException.ThrowIfNull(key);
 
@@ -26,15 +22,33 @@ public sealed class TypedGrainKeyReader : IDisposable
         _parts = GrainKeyFormat.Split(key, keyType);
     }
 
-    public static TypedGrainKeyReader Create(string key) => new(key);
+    /// <summary>
+    /// Creates a reader for an encoded <typeparamref name="TKey"/>. It checks that the key starts with
+    /// <typeparamref name="TKey"/>'s name and skips it, and its errors name <typeparamref name="TKey"/>.
+    /// </summary>
+    /// <exception cref="GrainKeyFormatException">The key is malformed or has a different name.</exception>
+    public static TypedGrainKeyReader Create<TKey>(string key) where TKey : ITypedGrainKey<TKey>
+    {
+        var name = GrainKeyFormat.GetValidName<TKey>();
+        var reader = new TypedGrainKeyReader(key, typeof(TKey));
 
-    /// <summary>Creates a reader whose errors name <typeparamref name="TKey"/>.</summary>
-    public static TypedGrainKeyReader Create<TKey>(string key) => new(key, typeof(TKey));
+        var actual = reader._parts[0];
+        if (!string.Equals(actual, name, StringComparison.Ordinal))
+        {
+            throw reader.Fail($"it starts with '{actual}' instead of the key name '{name}'", 0);
+        }
 
-    /// <summary>The number of parts in the key.</summary>
+        reader._position = 1;
+        return reader;
+    }
+
+    /// <summary>Creates a reader over the raw parts of a key, without a name. Used to test the part encoding.</summary>
+    internal static TypedGrainKeyReader Create(string key) => new(key, null);
+
+    /// <summary>The number of parts in the key, including its name.</summary>
     public int PartCount => _parts.Count;
 
-    /// <summary>The number of parts read so far.</summary>
+    /// <summary>The number of parts read so far, including the name.</summary>
     public int Position => _position;
 
     public string ReadString()

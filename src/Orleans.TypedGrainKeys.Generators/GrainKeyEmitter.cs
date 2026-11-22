@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Text;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace Orleans.TypedGrainKeys.Generators;
 
@@ -26,18 +27,16 @@ internal static class GrainKeyEmitter
         sb.AppendLine($"{declaration} {key.Name} : global::Orleans.ITypedGrainKey<{t}>, global::System.IParsable<{t}>");
         sb.AppendLine("{");
 
-        // Conversions used by Orleans' string key APIs.
+        sb.AppendLine("    /// <summary>The name written as the first part of every encoded key of this type.</summary>");
+        sb.AppendLine($"    public static string GrainKeyName => {SymbolDisplay.FormatLiteral(key.GrainKeyName, quote: true)};");
+        sb.AppendLine();
         sb.AppendLine("    /// <summary>Encodes the key as an Orleans grain key string.</summary>");
-        sb.AppendLine($"    public static implicit operator string({t} key)");
+        sb.AppendLine($"    public static string Format({t} key)");
         sb.AppendLine("    {");
-        sb.AppendLine("        var writer = global::Orleans.TypedGrainKeyWriter.Create();");
+        sb.AppendLine($"        var writer = global::Orleans.TypedGrainKeyWriter.Create<{t}>();");
         sb.AppendLine("        WriteGrainKeyParts(writer, key);");
         sb.AppendLine("        return writer.Build();");
         sb.AppendLine("    }");
-        sb.AppendLine();
-        sb.AppendLine("    /// <summary>Decodes an Orleans grain key string.</summary>");
-        sb.AppendLine("    /// <exception cref=\"global::Orleans.GrainKeyFormatException\">The key is not a valid encoded key of this type.</exception>");
-        sb.AppendLine($"    public static implicit operator {t}(string key) => Parse(key);");
         sb.AppendLine();
 
         // Parse / TryParse, also implementing IParsable<T>.
@@ -88,6 +87,25 @@ internal static class GrainKeyEmitter
 
         var arguments = string.Join(", ", Enumerable.Range(0, key.Parts.Count).Select(i => $"part{i}"));
         sb.AppendLine($"        return new {t}({arguments});");
+        sb.AppendLine("    }");
+        sb.AppendLine("}");
+        sb.AppendLine();
+
+        // Type-safe grain lookup. The constraint only admits grain interfaces declared with this key type, and since
+        // the key no longer converts to string, Orleans' own GetGrain(string) overload doesn't apply to it.
+        var accessibility = key.IsPublic ? "public" : "internal";
+        sb.AppendLine($"/// <summary>Gets grains whose typed key is <see cref=\"{t}\"/>.</summary>");
+        sb.AppendLine($"{accessibility} static class {key.Name}GrainFactoryExtensions");
+        sb.AppendLine("{");
+        sb.AppendLine("    /// <summary>Gets a reference to the grain with the given typed key.</summary>");
+        sb.AppendLine("    public static TGrainInterface GetGrain<TGrainInterface>(");
+        sb.AppendLine("        this global::Orleans.IGrainFactory grainFactory,");
+        sb.AppendLine($"        {t} key,");
+        sb.AppendLine("        string? grainClassNamePrefix = null)");
+        sb.AppendLine($"        where TGrainInterface : global::Orleans.IGrainWithTypedKey<{t}>");
+        sb.AppendLine("    {");
+        sb.AppendLine("        global::System.ArgumentNullException.ThrowIfNull(grainFactory);");
+        sb.AppendLine($"        return grainFactory.GetGrain<TGrainInterface>({t}.Format(key), grainClassNamePrefix);");
         sb.AppendLine("    }");
         sb.AppendLine("}");
 

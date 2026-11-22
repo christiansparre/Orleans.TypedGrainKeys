@@ -14,6 +14,19 @@ internal static class GrainKeyFormat
 
     private static CultureInfo Invariant => CultureInfo.InvariantCulture;
 
+    /// <summary>Returns the key's name, throwing if it can't be used as one. Keep in sync with the generator's check.</summary>
+    public static string GetValidName<TKey>() where TKey : ITypedGrainKey<TKey>
+    {
+        var name = TKey.GrainKeyName;
+        if (string.IsNullOrEmpty(name) || !name.All(c => c is (>= 'a' and <= 'z') or (>= 'A' and <= 'Z') or (>= '0' and <= '9') or '-' or '_' or '.'))
+        {
+            throw new InvalidOperationException(
+                $"The grain key name '{name}' of {typeof(TKey).Name} is not valid. A name must be non-empty and only contain letters, digits, '-', '_' and '.'.");
+        }
+
+        return name;
+    }
+
     public static void AppendEscaped(StringBuilder builder, string part)
     {
         foreach (var c in part)

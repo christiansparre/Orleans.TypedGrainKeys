@@ -11,7 +11,7 @@ public class TypedKeyGrainGeneratorTests
         using Orleans;
         using Orleans.Runtime;
         namespace App;
-        [GrainKey] public partial record UserKey(System.Guid TenantId, int UserId);
+        [GrainKey("user")] public partial record UserKey(System.Guid TenantId, int UserId);
         public interface IUserGrain : IGrainWithTypedKey<UserKey> { Task<int> Get(); }
         """;
 
@@ -106,7 +106,7 @@ public class TypedKeyGrainGeneratorTests
     {
         var run = GeneratorHarness.Run($$"""
             {{Prelude}}
-            [GrainKey] public partial record OtherKey(string Name);
+            [GrainKey("other")] public partial record OtherKey(string Name);
             public interface IOtherGrain : IGrainWithTypedKey<OtherKey> { }
             public partial class UserGrain : Grain, IUserGrain, IOtherGrain { public Task<int> Get() => Task.FromResult(0); }
             """);

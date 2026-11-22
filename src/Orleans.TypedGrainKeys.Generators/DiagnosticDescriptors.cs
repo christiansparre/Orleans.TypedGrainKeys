@@ -72,4 +72,29 @@ internal static class DiagnosticDescriptors
         category: Category,
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor InvalidName = new(
+        id: "TGK009",
+        title: "Invalid grain key name",
+        messageFormat: "'{0}' is not a valid name for grain key '{1}'. A name must be non-empty and only contain letters, digits, '-', '_' and '.'.",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor DuplicateName = new(
+        id: "TGK010",
+        title: "Grain key name is used by another key",
+        messageFormat: "Grain key '{0}' has the name '{1}', which is also used by {2}. Give each key a unique name so their keys can't be mixed up.",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        customTags: WellKnownDiagnosticTags.CompilationEnd);
+
+    public static readonly DiagnosticDescriptor StringKeyForTypedGrain = new(
+        id: "TGK011",
+        title: "Use the typed key to get a grain with a typed key",
+        messageFormat: "'{0}' has a typed key. Pass a '{1}' instead of a string, so the key type is checked at compile time.",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
 }

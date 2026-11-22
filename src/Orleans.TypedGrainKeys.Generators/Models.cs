@@ -27,10 +27,14 @@ internal enum PartKind
 /// <param name="TypeName">The fully qualified type name, used for enums and nested keys.</param>
 internal sealed record PartModel(string MemberName, PartKind Kind, string TypeName);
 
+/// <param name="GrainKeyName">The name from <c>[GrainKey("...")]</c>, written as the first part of the key.</param>
+/// <param name="IsPublic">Whether the key is public; the generated grain factory extensions get the same accessibility.</param>
 internal sealed record KeyModel(
     string? Namespace,
     string Name,
     string FullyQualifiedName,
+    string GrainKeyName,
+    bool IsPublic,
     bool IsValueType,
     bool IsReadOnly,
     EquatableArray<PartModel> Parts);
