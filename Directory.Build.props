@@ -5,4 +5,22 @@
         <Nullable>enable</Nullable>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     </PropertyGroup>
+
+    <!-- Package metadata. The version comes from version.json via Nerdbank.GitVersioning. -->
+    <PropertyGroup>
+        <Authors>Christian Sparre</Authors>
+        <Copyright>Copyright (c) Christian Sparre</Copyright>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageProjectUrl>https://github.com/christiansparre/Orleans.TypedGrainKeys</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/christiansparre/Orleans.TypedGrainKeys</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+        <!-- GitHub Packages has no symbol server, so ship the PDB inside the assembly. -->
+        <DebugType>embedded</DebugType>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+        <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    </PropertyGroup>
 </Project>
