@@ -2,7 +2,15 @@
 
 	<PropertyGroup>
 		<RootNamespace>Orleans</RootNamespace>
+		<PackageId>Orleans.TypedGrainKeys</PackageId>
+		<Description>Strongly typed, composite string grain keys for Microsoft Orleans. Declare a key as a partial record with [GrainKey("name")], and a source generator writes the encoding, a cached Key property on partial grains and type-safe GetGrain extensions.</Description>
+		<PackageTags>orleans;grain;grain-key;composite-key;multi-tenant;source-generator</PackageTags>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
+
+	<ItemGroup>
+		<None Include="..\..\README.md" Pack="true" PackagePath="\" Visible="false" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Orleans.Core.Abstractions" />
